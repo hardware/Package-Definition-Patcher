@@ -15,15 +15,21 @@ Package Definition Patcher was intended to work through the game updates without
 ## INSTALLATION
 
 1. Run `PATCH.cmd`
-2. Mod your game \o/
+2. [Mod your game](https://www.nexusmods.com/hitman2) \o/
 
-IMPORTANT : Note that the first step has to be done after every game update, as they replace the packagedefinition.txt with a new one.
+#### IMPORTANT : 
+
+Note that the first step has to be done after every game update, as they replace the packagedefinition.txt with a new one.
 
 ## UNINSTALL
 
 1. Run `UNINSTALL.cmd` to restore the packagedefinition.txt file to its original state
 
+## NEXUS PAGE
+
+https://www.nexusmods.com/hitman2/mods/17
+
 ## CREDITS
 
-- h6xtea : [A.W. Stanley](https://github.com/awstanley/hitman.rs)
-    
+* h6xtea : [A.W. Stanley](https://github.com/awstanley/hitman.rs)
+    - h6xtea is released under the Zlib licence and is modern variant of the old `h6xxtea` made in 2016.
