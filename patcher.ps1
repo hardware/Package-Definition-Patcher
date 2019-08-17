@@ -28,11 +28,11 @@
     https://www.nexusmods.com/hitman2/mods/17
 
 .EXAMPLE
-    .\packagedefinition-patcher.ps1
+    .\patcher.ps1
     Patch the packagedefinition.txt file
 
 .EXAMPLE
-    .\packagedefinition-patcher.ps1 -Restore
+    .\patcher.ps1 -Restore
     Restore the packagedefinition.txt file to its original state
 
 #>
@@ -110,7 +110,7 @@ function Invoke-H6xtea
     $currentDir = Get-ScriptDirectory
 
     $process = New-Object System.Diagnostics.Process
-    $process.StartInfo.Filename = "$currentDir\h6xtea\h6xtea.exe"
+    $process.StartInfo.Filename = "$currentDir\bin\h6xtea\h6xtea.exe"
     $process.StartInfo.Arguments = $Args
     $process.StartInfo.RedirectStandardOutput = $True
     $process.StartInfo.RedirectStandardError = $True
