@@ -16,7 +16,7 @@
 .NOTES
     Author  : https://www.hitmanforum.com/u/Hardware
     Date    : 2019/08/18
-    Version : 1.0.1
+    Version : 1.1.0
 
 .OUTPUTS
     0 if successful, 1 otherwise
@@ -100,7 +100,7 @@ function Show-Message
 
 } # end function Show-Message
 
-function Invoke-H6xxtea
+function Invoke-H6xtea
 {
     Param(
         [Parameter(Mandatory = $true)]
@@ -110,7 +110,7 @@ function Invoke-H6xxtea
     $currentDir = Get-ScriptDirectory
 
     $process = New-Object System.Diagnostics.Process
-    $process.StartInfo.Filename = "$currentDir\h6xxtea.exe"
+    $process.StartInfo.Filename = "$currentDir\h6xtea\h6xtea.exe"
     $process.StartInfo.Arguments = $Args
     $process.StartInfo.RedirectStandardOutput = $True
     $process.StartInfo.RedirectStandardError = $True
@@ -124,7 +124,7 @@ function Invoke-H6xxtea
         ExitCode = $process.ExitCode;
     }
     
-} # end function Invoke-H6xxtea
+} # end function Invoke-H6xtea
 
 #endregion
 
@@ -133,7 +133,7 @@ function Invoke-H6xxtea
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 Show-Message -Type BANNER -NoPrefix -Message "        HITMAN 2 - PACKAGE DEFINITION PATCHER              "
 Show-Message -Type BANNER -NoPrefix -Message "                                                           "
-Show-Message -Type BANNER -NoPrefix -Message "                 v1.0.1 (2019/08/18)                       "
+Show-Message -Type BANNER -NoPrefix -Message "                 v1.1.0 (2019/08/18)                       "
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 
 if($Restore)
@@ -245,7 +245,9 @@ else
 # STEP 3 : DECRYPTION 
 # ------------------------------------------------------------------------------------------------------------------
 
-$result = Invoke-H6xxtea -Args " -src=`"$packageDefinitionFile`" -dst=`"$packageDefinitioniniFile`" -d"
+# h6xtea.exe 
+
+$result = Invoke-H6xtea -Args " --decipher --src=`"$packageDefinitionFile`" --dst=`"$packageDefinitioniniFile`""
 
 if($result.ExitCode -ne 0)
 {
@@ -277,7 +279,7 @@ Show-Message -Type INFO -Message "Patchlevel pattern found and replaced"
 # STEP 5 : ENCRYPTION 
 # ------------------------------------------------------------------------------------------------------------------
 
-$result = Invoke-H6xxtea -Args " -src=`"$packageDefinitioniniFile`" -dst=`"$packageDefinitionFile`" -e"
+$result = Invoke-H6xtea -Args " --encipher --src=`"$packageDefinitioniniFile`" --dst=`"$packageDefinitionFile`""
 
 if($result.ExitCode -ne 0)
 {
