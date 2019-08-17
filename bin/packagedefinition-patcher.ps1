@@ -1,21 +1,22 @@
 <#
 
 .SYNOPSIS
-    This script allows to use extra mods patches in HITMAN 2 by raising the patchlevel value of chunk0.
+    This tool allows to use extra mods patches in HITMAN 2 by raising the patchlevel value of chunk0.
 
 .DESCRIPTION
-    The packagedefinition.txt's patchlevel directive tells the game how many chunk0 patches should be recognised 
-    when playing. This is usually set to 3 by default, but in order to play with mods, this number must be higher 
-    to allow the game to recognise extra mod patches provided by the community.
+    The packagedefinition.txt's patchlevel directive tells the game how many chunk0 patches should be 
+    recognised when playing. This is usually set to 3 by default, but in order to play with mods, this 
+    number must be higher to allow the game to recognise extra mod patches provided by the community.
 
-    This script sets a patchlevel value of 10000.
+    This tool makes a copy of the original packagedefinition.txt file and sets a patchlevel value of 10000.
 
-    IMPORTANT : Note that this has to be done every update, as updates replace the packagedefinition.txt with a new one.
+    Package Definition Patcher was intended to work through the game updates without having to re-download 
+    it each time, unless if a future game update introduces a breaking change.
 
 .NOTES
     Author  : https://www.hitmanforum.com/u/Hardware
-    Date    : 2019/08/17
-    Version : 1.0
+    Date    : 2019/08/18
+    Version : 1.0.1
 
 .OUTPUTS
     0 if successful, 1 otherwise
@@ -132,7 +133,7 @@ function Invoke-H6xxtea
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 Show-Message -Type BANNER -NoPrefix -Message "        HITMAN 2 - PACKAGE DEFINITION PATCHER              "
 Show-Message -Type BANNER -NoPrefix -Message "                                                           "
-Show-Message -Type BANNER -NoPrefix -Message "                  v1.0 (2019/08/17)                        "
+Show-Message -Type BANNER -NoPrefix -Message "                 v1.0.1 (2019/08/18)                       "
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 
 if($Restore)
@@ -244,7 +245,7 @@ else
 # STEP 3 : DECRYPTION 
 # ------------------------------------------------------------------------------------------------------------------
 
-$result = Invoke-H6xxtea -Args " -src $packageDefinitionFile -dst $packageDefinitioniniFile -d"
+$result = Invoke-H6xxtea -Args " -src=`"$packageDefinitionFile`" -dst=`"$packageDefinitioniniFile`" -d"
 
 if($result.ExitCode -ne 0)
 {
@@ -276,7 +277,7 @@ Show-Message -Type INFO -Message "Patchlevel pattern found and replaced"
 # STEP 5 : ENCRYPTION 
 # ------------------------------------------------------------------------------------------------------------------
 
-$result = Invoke-H6xxtea -Args " -src $packageDefinitioniniFile -dst $packageDefinitionFile -e"
+$result = Invoke-H6xxtea -Args " -src=`"$packageDefinitioniniFile`" -dst=`"$packageDefinitionFile`" -e"
 
 if($result.ExitCode -ne 0)
 {
