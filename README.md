@@ -1,6 +1,6 @@
 # HITMAN 2 - PACKAGE DEFINITION PATCHER
 
-This tool allows to use extra mods patches in HITMAN 2 by raising the patchlevel value of chunk0.
+This tool automatically updates packagedefinition.txt to use extra mods patches in HITMAN 2.
 
 The packagedefinition.txt's patchlevel directive tells the game how many chunk0 patches should be recognised when playing. This is usually set to 3 by default, but in order to play with mods, this number must be higher to allow the game to recognise extra mod patches provided by the community.
 
@@ -11,6 +11,7 @@ Package Definition Patcher was intended to work through the game updates without
 ## REQUIREMENTS 
 
 - HITMAN 2
+- Microsoft Windows 7 or above
 
 ## INSTALLATION
 

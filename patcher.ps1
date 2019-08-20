@@ -1,7 +1,7 @@
 <#
 
 .SYNOPSIS
-    This tool allows to use extra mods patches in HITMAN 2 by raising the patchlevel value of chunk0.
+    This tool automatically updates packagedefinition.txt to use extra mods patches in HITMAN 2.
 
 .DESCRIPTION
     The packagedefinition.txt's patchlevel directive tells the game how many chunk0 patches should be 
@@ -144,7 +144,7 @@ if($Restore)
 # STEP 1 : PACKAGEDEFINITION SEARCHING
 # ------------------------------------------------------------------------------------------------------------------
 
-$gameLocationPath = (Get-ItemProperty -Path $STEAM_APP_KEY_PATH -Name InstallLocation -ErrorAction Ignore).InstallLocation
+$gameLocationPath = (Get-ItemProperty -Path $STEAM_APP_KEY_PATH -Name InstallLocation -ErrorAction SilentlyContinue).InstallLocation
 
 if([string]::IsNullOrEmpty($gameLocationPath)) 
 {
@@ -244,8 +244,6 @@ else
 
 # STEP 3 : DECRYPTION 
 # ------------------------------------------------------------------------------------------------------------------
-
-# h6xtea.exe 
 
 $result = Invoke-H6xtea -Args " --decipher --src=`"$packageDefinitionFile`" --dst=`"$packageDefinitioniniFile`""
 
