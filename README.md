@@ -8,7 +8,7 @@ settings must be higher to allow the game to recognise extra mods patches provid
 
 This tool makes a copy of the original packagedefinition.txt file and sets all patchlevel values to 10000.
 
-Package Definition Patcher was intended to work through the game updates without having to re-download 
+Package Definition Patcher is intended to work through the game updates without having to re-download 
 it each time, unless if a future game update introduces a breaking change.
 
 ## REQUIREMENTS 
