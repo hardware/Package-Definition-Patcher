@@ -1,22 +1,22 @@
 <#
 
 .SYNOPSIS
-    This tool automatically updates packagedefinition.txt to use extra mods patches in HITMAN 2.
+    This tool automatically updates the packagedefinition.txt encrypted file to use extra mods patches in HITMAN 2.
 
 .DESCRIPTION
-    The packagedefinition.txt's patchlevel directive tells the game how many chunk0 patches should be 
-    recognised when playing. This is usually set to 3 by default, but in order to play with mods, this 
-    number must be higher to allow the game to recognise extra mod patches provided by the community.
+    The packagedefinition.txt encrypted file tells how many patches the base game and DLCs should be recognised 
+    when playing. Patchlevel settings are usually set to a low value, but in order to play with mods, these 
+    settings must be higher to allow the game to recognise extra mods patches provided by the community.
 
-    This tool makes a copy of the original packagedefinition.txt file and sets a patchlevel value of 10000.
+    This tool makes a copy of the original packagedefinition.txt file and sets all patchlevel values to 10000.
 
     Package Definition Patcher was intended to work through the game updates without having to re-download 
     it each time, unless if a future game update introduces a breaking change.
 
 .NOTES
     Author  : https://www.hitmanforum.com/u/Hardware
-    Date    : 2019/08/18
-    Version : 1.1.0
+    Date    : 2019/08/20
+    Version : 1.2.0
 
 .OUTPUTS
     0 if successful, 1 otherwise
@@ -47,7 +47,7 @@ Param
 
 Set-Variable STEAM_APP_KEY_PATH -option Constant -value "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 863550"
 Set-Variable PACKAGEDEFINITION_NAME -option Constant -value "packagedefinition.txt"
-Set-Variable PATCHLEVEL_PATTERN -option Constant -value "@chunk patchlevel"
+Set-Variable PATCHLEVEL_SETTING -option Constant -value "patchlevel"
 Set-Variable PATCHLEVEL_NUMBER -option Constant -value 10000
 
 #endregion
@@ -67,6 +67,7 @@ function Get-ScriptDirectory
     {
         Split-Path $script:MyInvocation.MyCommand.Path
     }
+
 } # end function Get-ScriptDirectory
 
 function Show-Message
@@ -133,12 +134,12 @@ function Invoke-H6xtea
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 Show-Message -Type BANNER -NoPrefix -Message "        HITMAN 2 - PACKAGE DEFINITION PATCHER              "
 Show-Message -Type BANNER -NoPrefix -Message "                                                           "
-Show-Message -Type BANNER -NoPrefix -Message "                 v1.1.0 (2019/08/18)                       "
+Show-Message -Type BANNER -NoPrefix -Message "                 v1.2.0 (2019/08/20)                       "
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 
 if($Restore)
 {
-    Show-Message -Type WARNING -NoPrefix -Message "PACKAGE DEFINITION RESTORATION PROCEDURE`n"
+    Show-Message -Type WARNING -NoPrefix -Message "STARTING PACKAGE DEFINITION RESTORATION PROCEDURE`n"
 }
 
 # STEP 1 : PACKAGEDEFINITION SEARCHING
@@ -263,16 +264,18 @@ Show-Message -Type INFO -Message "Definition file decrypted"
 
 $iniFileContent = Get-Content $packageDefinitioniniFile
 
-if(-not($iniFileContent | Select-string -Pattern $PATCHLEVEL_PATTERN -Quiet))
+if(-not($iniFileContent | Select-string -Pattern $PATCHLEVEL_SETTING -Quiet))
 {
-    Show-Message -Type ERROR -Message "Chunk0 patchlevel not found in $PACKAGEDEFINITION_NAME, file format has probably changed`n"
+    Show-Message -Type ERROR -Message "No $PATCHLEVEL_SETTING found in $PACKAGEDEFINITION_NAME, file format has probably changed`n"
     Exit 1
 }
 
-$iniFileContent -Replace "\$PATCHLEVEL_PATTERN\.*=.*", "$PATCHLEVEL_PATTERN=$PATCHLEVEL_NUMBER" `
+# We replace both the base game and DLCs patchlevels
+# @chunk patchlevel=xx / @dlc patchlevel=xx
+$iniFileContent -Replace "$PATCHLEVEL_SETTING\.*=.*", "$PATCHLEVEL_SETTING=$PATCHLEVEL_NUMBER" `
  | Set-Content $packageDefinitioniniFile -Force
 
-Show-Message -Type INFO -Message "Patchlevel pattern found and replaced"
+Show-Message -Type INFO -Message "Patchlevel settings found and replaced"
 
 # STEP 5 : ENCRYPTION 
 # ------------------------------------------------------------------------------------------------------------------
@@ -297,7 +300,8 @@ Show-Message -Type INFO -Message "Definition file encrypted"
 
 Write-Host ""
 Show-Message -Type SUCCESS -Message "$PACKAGEDEFINITION_NAME successfully patched"
-Show-Message -Type SUCCESS -NoPrefix -Message "`n> Now you can add any chunk0patchX.rpkg as you want in the Runtime folder"
+Show-Message -Type SUCCESS -NoPrefix -Message "`n> Now you can add any rpkg patch for both the"
+Show-Message -Type SUCCESS -NoPrefix -Message "> base game and DLCs in your Runtime folder :"
 Show-Message -Type SUCCESS -NoPrefix -Message "> Path : $packageDefinitionBasePath`n"
 
 Exit 0
