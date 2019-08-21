@@ -1,3 +1,3 @@
 @echo off
-Powershell.exe -ExecutionPolicy RemoteSigned -File "%~dp0\patcher.ps1"
+Powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\patcher.ps1
 pause
