@@ -15,8 +15,8 @@
 
 .NOTES
     Author  : https://www.hitmanforum.com/u/Hardware
-    Date    : 2019/08/21
-    Version : 1.2.2
+    Date    : 2019/10/03
+    Version : 1.3.1
 
 .OUTPUTS
     0 if successful, 1 otherwise
@@ -134,7 +134,7 @@ function Invoke-H6xtea
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 Show-Message -Type BANNER -NoPrefix -Message "        HITMAN 2 - PACKAGE DEFINITION PATCHER              "
 Show-Message -Type BANNER -NoPrefix -Message "                                                           "
-Show-Message -Type BANNER -NoPrefix -Message "                 v1.2.2 (2019/08/21)                       "
+Show-Message -Type BANNER -NoPrefix -Message "                 v1.3.1 (2019/10/03)                       "
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 
 if($Restore)

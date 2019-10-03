@@ -23,7 +23,8 @@ it each time, unless if a future game update introduces a breaking change.
 
 #### IMPORTANT : 
 
-Note that the first step has to be done after every game update, as they replace the packagedefinition.txt with a new one.
+- Note that the first step (Run PATCH.cmd) has to be done after every game update, as they replace the packagedefinition.txt with a new one.
+- During the first execution, a smartscreen window might appear. In this case, click on "More info > Run Anyway", if you trust this mod of course :D
 
 ## UNINSTALL
 
