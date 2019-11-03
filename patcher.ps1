@@ -15,8 +15,8 @@
 
 .NOTES
     Author  : https://www.hitmanforum.com/u/Hardware
-    Date    : 2019/10/03
-    Version : 1.3.1
+    Date    : 2019/11/03
+    Version : 1.4.0
 
 .OUTPUTS
     0 if successful, 1 otherwise
@@ -45,8 +45,10 @@ Param
 
 #region begin constants
 
-Set-Variable STEAM_APP_KEY_PATH -option Constant -value "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 863550"
+Set-Variable STEAM_APP_ID -option Constant -value 863550
+Set-Variable STEAM_KEY_PATH -option Constant -value "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam"
 Set-Variable PACKAGEDEFINITION_NAME -option Constant -value "packagedefinition.txt"
+Set-Variable HITMAN2_NAME -option Constant -value "HITMAN2.exe"
 Set-Variable PATCHLEVEL_SETTING -option Constant -value "patchlevel"
 Set-Variable PATCHLEVEL_NUMBER -option Constant -value 10000
 
@@ -76,7 +78,7 @@ function Show-Message
         [Parameter(Mandatory = $true)]
         [String]$Message,
         [Parameter(Mandatory = $true)]
-        [ValidateSet('BANNER', 'INFO', 'WARNING', 'ERROR', 'SUCCESS')]
+        [ValidateSet('BANNER', 'INFO', 'WARNING', 'DEBUG', 'ERROR', 'SUCCESS')]
         [String]$Type,
         [Parameter(Mandatory = $false)]
         [Switch]$NoPrefix
@@ -86,6 +88,7 @@ function Show-Message
         BANNER  { $color = [ConsoleColor]::Gray }
         INFO    { $color = [ConsoleColor]::Cyan }
         WARNING { $color = [ConsoleColor]::DarkYellow }
+        DEBUG   { $color = [ConsoleColor]::Yellow }
         ERROR   { $color = [ConsoleColor]::Red }
         SUCCESS { $color = [ConsoleColor]::Green }
     }
@@ -127,6 +130,88 @@ function Invoke-H6xtea
     
 } # end function Invoke-H6xtea
 
+Function ConvertFrom-VDF 
+{
+    <# 
+    .Synopsis 
+        Reads a Valve Data File (VDF) formatted string into a custom object.
+
+    .Description 
+        The ConvertFrom-VDF cmdlet converts a VDF-formatted string to a custom object 
+        (PSCustomObject) that has a property for each field in the VDF string. 
+        VDF is used as a textual data format for Valve software applications, 
+        such as Steam.
+
+    .Parameter InputObject
+        Specifies the VDF strings to convert to PSObjects. Enter a variable that contains 
+        the string, or type a command or expression that gets the string. 
+
+    .Example 
+        $vdf = ConvertFrom-VDF -InputObject (Get-Content ".\SharedConfig.vdf")
+
+        Description 
+        ----------- 
+        Gets the content of a VDF file named "SharedConfig.vdf" in the current location 
+        and converts it to a PSObject named $vdf
+
+    .Inputs 
+        System.String
+
+    .Outputs 
+        PSCustomObject
+    #>
+
+    param
+    (
+		[Parameter(Position=0, Mandatory=$true)]
+		[ValidateNotNullOrEmpty()]
+        [System.String[]]$InputObject
+    )
+    
+    process
+    {
+        $root = New-Object -TypeName PSObject
+        $chain = [ordered]@{}
+        $depth = 0
+        $parent = $root
+        $element = $null
+		
+        ForEach ($line in $InputObject)
+        {
+            $quotedElements = (Select-String -Pattern '(?<=")([^\"\t\s]+\s?)+(?=")' -InputObject $line -AllMatches).Matches
+    
+            if ($quotedElements.Count -eq 1) # Create a new (sub) object
+            {
+                $element = New-Object -TypeName PSObject
+                Add-Member -InputObject $parent -MemberType NoteProperty -Name $quotedElements[0].Value -Value $element
+            }
+            elseif ($quotedElements.Count -eq 2) # Create a new String hash
+            {
+                Add-Member -InputObject $element -MemberType NoteProperty -Name $quotedElements[0].Value -Value $quotedElements[1].Value
+            }
+            elseif ($line -match "{")
+            {
+                $chain.Add($depth, $element)
+                $depth++
+                $parent = $chain.($depth - 1) # AKA $element
+            }
+            elseif ($line -match "}")
+            {
+                $depth--
+                $parent = $chain.($depth - 1)
+				$element = $parent
+                $chain.Remove($depth)
+            }
+            else # Comments etc
+            {
+            }
+        }
+
+        return $root
+    }
+    
+} # end function ConvertFrom-VDF
+
 #endregion
 
 #region begin body
@@ -134,7 +219,7 @@ function Invoke-H6xtea
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 Show-Message -Type BANNER -NoPrefix -Message "        HITMAN 2 - PACKAGE DEFINITION PATCHER              "
 Show-Message -Type BANNER -NoPrefix -Message "                                                           "
-Show-Message -Type BANNER -NoPrefix -Message "                 v1.3.1 (2019/10/03)                       "
+Show-Message -Type BANNER -NoPrefix -Message "                 v1.4.0 (2019/11/03)                       "
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 
 if($Restore)
@@ -145,11 +230,81 @@ if($Restore)
 # STEP 1 : PACKAGEDEFINITION SEARCHING
 # ------------------------------------------------------------------------------------------------------------------
 
-$gameLocationPath = (Get-ItemProperty -Path $STEAM_APP_KEY_PATH -Name InstallLocation -ErrorAction SilentlyContinue).InstallLocation
+# Search steam installation folder
+$steamPath = (Get-ItemProperty -Path $STEAM_KEY_PATH -Name InstallPath -ErrorAction SilentlyContinue).InstallPath
 
-if([string]::IsNullOrEmpty($gameLocationPath)) 
+if(([string]::IsNullOrEmpty($steamPath)) -or (-not(Test-path $steamPath))) 
 {
-    Show-Message -Type WARNING -Message "Steam game folder not found"
+    Show-Message -Type ERROR -Message "Steam folder not found"
+    Show-Message -Type DEBUG -Message "Invalid installation path found in the registry"
+    Show-Message -Type DEBUG -Message "Key : $STEAM_KEY_PATH"
+    Show-Message -Type DEBUG -Message "InstallPath value : $steamPath`n"
+}
+# If steam folder exists, search for Hitman 2 app manifest in all possible locations
+else 
+{
+    Show-Message -Type INFO -Message "Steam folder found"
+    Show-Message -Type INFO -Message "Seaching appmanifest in $steamPath\steamapps"
+
+    $acfFile = "$steamPath\steamapps\appmanifest_$STEAM_APP_ID.acf"
+    $gameLocationPath = $null
+
+    # Search for Hitman 2's app manifest in the default steam folder
+    if(Test-Path $acfFile)
+    {
+        $acf = ConvertFrom-VDF (Get-Content $acfFile -Encoding UTF8)
+        $installDir = $acf.AppState.installdir
+        $gameLocationPath = "$steamPath\steamapps\common\$installDir"
+    }
+    # Search for Hitman 2's app manifest in each steam library folders
+    else
+    {
+        # libraryfolders.vdf contains all steam library folders
+        $vdfFile = "$steamPath\steamapps\libraryfolders.vdf"
+        $vdf = $null
+
+        if(-not(Test-path $vdfFile))
+        {
+            Show-Message -Type ERROR -Message "Steam's libraryfolders.vdf not found"
+            Show-Message -Type DEBUG -Message "libraryfolders.vdf file should be here :"
+            Show-Message -Type DEBUG -Message "$vdfFile"
+            Show-Message -Type DEBUG -Message "But the file was not found"
+            Show-Message -Type DEBUG -Message "Unable to find the game location automatically...`n"
+        }
+        else
+        {
+            $vdf = ConvertFrom-VDF (Get-Content $vdfFile -Encoding UTF8)
+        }
+
+        if(-not([string]::IsNullOrEmpty($vdf)))
+        {
+            # Search up to 20 library folders
+            for($i = 1; $i -le 20; $i++)
+            {
+                if(-not([string]::IsNullOrEmpty($vdf.LibraryFolders.$i)))
+                {
+                    $gamesDir = $($vdf.LibraryFolders.$i).Replace('\\','\')
+                    $acfFile = "$gamesDir\steamapps\appmanifest_$STEAM_APP_ID.acf"
+
+                    Show-Message -Type INFO -Message "Seaching appmanifest in $gamesDir\steamapps"
+
+                    if(Test-Path $acfFile)
+                    {
+                        $acf = ConvertFrom-VDF (Get-Content $acfFile -Encoding UTF8)
+                        $installDir = $acf.AppState.installdir
+                        $gameLocationPath = "$gamesDir\steamapps\common\$installDir"
+                        Break
+                    }
+                }
+            }
+        }
+    }
+}
+
+if(([string]::IsNullOrEmpty($gameLocationPath)) -or (-not(Test-path($gameLocationPath)))) 
+{
+    Write-Host ""
+    Show-Message -Type WARNING -Message "Hitman 2 folder not found"
     $gameLocationPath = Read-Host "`n > Enter the full path (eg. C:\Program Files (x86)\Steam\steamapps\common\HITMAN2)"
     Write-Host ""
 
@@ -161,22 +316,25 @@ if([string]::IsNullOrEmpty($gameLocationPath))
 
     if(-not(Test-path($gameLocationPath))) 
     {
-        Show-Message -Type ERROR -Message "Game folder not found`n"
+        Show-Message -Type ERROR -Message "Unable to determine a path to Hitman 2's folder`n"
         Exit 1
     }
 }
 else
 {
-    Show-Message -Type INFO -Message "Steam game folder found"
+    Show-Message -Type INFO -Message "Hitman 2 folder found"
 }
 
 $packageDefinitionBasePath = "$gameLocationPath\Runtime"
-$mainExePath = "$gameLocationPath\Retail\HITMAN2.exe"
+$mainExePath = "$gameLocationPath\Retail\$HITMAN2_NAME"
 $packageDefinitionFile = "$packageDefinitionBasePath\$PACKAGEDEFINITION_NAME"
 
 if(-not(Test-path($mainExePath))) 
 {
-    Show-Message -Type ERROR -Message "HITMAN2.exe not found`n"
+    Show-Message -Type ERROR -Message "$HITMAN2_NAME not found"
+    Show-Message -Type DEBUG -Message "$HITMAN2_NAME retail file should be here :"
+    Show-Message -Type DEBUG -Message "$mainExePath"
+    Show-Message -Type DEBUG -Message "But the file was not found...`n"
     Exit 1
 }
 
@@ -184,7 +342,10 @@ Show-Message -Type INFO -Message "Searching for $PACKAGEDEFINITION_NAME"
 
 if(-not(Test-path($packageDefinitionFile))) 
 {
-    Show-Message -Type ERROR -Message "$PACKAGEDEFINITION_NAME not found`n"
+    Show-Message -Type ERROR -Message "$PACKAGEDEFINITION_NAME not found"
+    Show-Message -Type DEBUG -Message "$PACKAGEDEFINITION_NAME retail file should be here :"
+    Show-Message -Type DEBUG -Message "$packageDefinitionFile"
+    Show-Message -Type DEBUG -Message "But the file was not found...`n"
     Exit 1
 }
 

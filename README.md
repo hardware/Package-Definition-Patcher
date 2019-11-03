@@ -14,7 +14,9 @@ it each time, unless if a future game update introduces a breaking change.
 ## REQUIREMENTS 
 
 - HITMAN 2
-- Microsoft Windows 7 or above
+- Microsoft Windows 7 or above (64 bits)
+
+If you're running this game on Linux, you can use this [online editor](https://g2-mods.com/tools/online/xtea/index.html), drag or drop your packagedefinition.txt file and click on "Set Patch Levels", then save this file into Hitman 2's Runtime folder.
 
 ## INSTALLATION
 
