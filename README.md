@@ -1,6 +1,6 @@
-# HITMAN 2 - PACKAGE DEFINITION PATCHER
+# HITMAN 3 - PACKAGE DEFINITION PATCHER
 
-This tool automatically updates the packagedefinition.txt encrypted file to use extra mods patches in HITMAN 2.
+This tool automatically updates the packagedefinition.txt encrypted file to use extra mods patches in HITMAN 3.
 
 The packagedefinition.txt encrypted file tells how many patches the base game and DLCs should be recognised 
 when playing. Patchlevel settings are usually set to a low value, but in order to play with mods, these 
@@ -11,17 +11,17 @@ This tool makes a copy of the original packagedefinition.txt file and sets all p
 Package Definition Patcher is intended to work through the game updates without having to re-download 
 it each time, unless if a future game update introduces a breaking change.
 
+The game location is automatically detected if you use Epic Games Launcher or Legendary.
+
 ## REQUIREMENTS 
 
-- HITMAN 2
-- Microsoft Windows 7 or above (64 bits)
-
-If you're running this game on Linux, you can use this [online editor](https://g2-mods.com/tools/online/xtea/index.html), drag or drop your packagedefinition.txt file and click on "Set Patch Levels", then save this file into Hitman 2's Runtime folder.
+- HITMAN 3
+- Microsoft Windows 10 (64 bits)
 
 ## INSTALLATION
 
 1. Run `PATCH.cmd`
-2. [Mod your game](https://www.nexusmods.com/hitman2) \o/
+2. [Mod your game](https://www.nexusmods.com/hitman3) \o/
 
 #### IMPORTANT : 
 
@@ -32,11 +32,14 @@ If you're running this game on Linux, you can use this [online editor](https://g
 
 1. Run `UNINSTALL.cmd` to restore the packagedefinition.txt file to its original state
 
-## NEXUS PAGE
-
-https://www.nexusmods.com/hitman2/mods/17
-
 ## CREDITS
 
-* h6xtea : [A.W. Stanley](https://github.com/awstanley/hitman.rs)
-    - h6xtea is released under the Zlib licence and is modern variant of the old `h6xxtea` made in 2016.
+* h6xtea : [A.W. Stanley](https://github.com/awstanley)
+    - h6xtea is released under the Zlib licence
+
+## OTHER TOOLS
+
+Package Definition Patcher was designed to patch/unpatch the game easily and quickly, if you are looking for a more complete mod management solution, check this out :
+
+- [QuickMod by Atampy26](https://www.hitmanforum.com/t/quickmod-a-mod-manager-for-hitman-2-and-3/140)
+- [A modding SDK and mod loader for HITMAN 3 by OrfeasZ](https://github.com/OrfeasZ/ZHMModSDK)

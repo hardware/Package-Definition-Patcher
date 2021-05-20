@@ -1,7 +1,7 @@
 <#
 
 .SYNOPSIS
-    This tool automatically updates the packagedefinition.txt encrypted file to use extra mods patches in HITMAN 2.
+    This tool automatically updates the packagedefinition.txt encrypted file to use extra mods patches in HITMAN 3.
 
 .DESCRIPTION
     The packagedefinition.txt encrypted file tells how many patches the base game and DLCs should be recognised 
@@ -15,17 +15,14 @@
 
 .NOTES
     Author  : https://www.hitmanforum.com/u/Hardware
-    Date    : 2019/11/03
-    Version : 1.4.0
+    Date    : 2021/05/20
+    Version : 1.5.0
 
 .OUTPUTS
     0 if successful, 1 otherwise
 
 .PARAMETER Restore
     If set, restore the packagedefinition.txt file to its original state
-
-.LINK
-    https://www.nexusmods.com/hitman2/mods/17
 
 .EXAMPLE
     .\patcher.ps1
@@ -45,32 +42,16 @@ Param
 
 #region begin constants
 
-Set-Variable STEAM_APP_ID -option Constant -value 863550
-Set-Variable STEAM_KEY_PATH -option Constant -value "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam"
+Set-Variable EGS_APP_NAME -option Constant -value "Eider"
+Set-Variable EGS_FILE_MANIFEST -option Constant -value "C:\ProgramData\Epic\UnrealEngineLauncher\LauncherInstalled.dat"
 Set-Variable PACKAGEDEFINITION_NAME -option Constant -value "packagedefinition.txt"
-Set-Variable HITMAN2_NAME -option Constant -value "HITMAN2.exe"
+Set-Variable HITMAN3_NAME -option Constant -value "HITMAN3.exe"
 Set-Variable PATCHLEVEL_SETTING -option Constant -value "patchlevel"
 Set-Variable PATCHLEVEL_NUMBER -option Constant -value 10000
 
 #endregion
 
 #region begin functions
-
-function Get-ScriptDirectory
-{
-    [OutputType([string])]
-    param ()
-
-    if ($null -ne $hostinvocation)
-    {
-        Split-Path $hostinvocation.MyCommand.path
-    }
-    else
-    {
-        Split-Path $script:MyInvocation.MyCommand.Path
-    }
-
-} # end function Get-ScriptDirectory
 
 function Show-Message
 {
@@ -111,10 +92,8 @@ function Invoke-H6xtea
         [String]$Args
     )
 
-    $currentDir = Get-ScriptDirectory
-
     $process = New-Object System.Diagnostics.Process
-    $process.StartInfo.Filename = "$currentDir\bin\h6xtea\h6xtea.exe"
+    $process.StartInfo.Filename = "$PSScriptRoot\bin\h6xtea\h6xtea.exe"
     $process.StartInfo.Arguments = $Args
     $process.StartInfo.RedirectStandardOutput = $True
     $process.StartInfo.RedirectStandardError = $True
@@ -130,96 +109,14 @@ function Invoke-H6xtea
     
 } # end function Invoke-H6xtea
 
-Function ConvertFrom-VDF 
-{
-    <# 
-    .Synopsis 
-        Reads a Valve Data File (VDF) formatted string into a custom object.
-
-    .Description 
-        The ConvertFrom-VDF cmdlet converts a VDF-formatted string to a custom object 
-        (PSCustomObject) that has a property for each field in the VDF string. 
-        VDF is used as a textual data format for Valve software applications, 
-        such as Steam.
-
-    .Parameter InputObject
-        Specifies the VDF strings to convert to PSObjects. Enter a variable that contains 
-        the string, or type a command or expression that gets the string. 
-
-    .Example 
-        $vdf = ConvertFrom-VDF -InputObject (Get-Content ".\SharedConfig.vdf")
-
-        Description 
-        ----------- 
-        Gets the content of a VDF file named "SharedConfig.vdf" in the current location 
-        and converts it to a PSObject named $vdf
-
-    .Inputs 
-        System.String
-
-    .Outputs 
-        PSCustomObject
-    #>
-
-    param
-    (
-		[Parameter(Position=0, Mandatory=$true)]
-		[ValidateNotNullOrEmpty()]
-        [System.String[]]$InputObject
-    )
-    
-    process
-    {
-        $root = New-Object -TypeName PSObject
-        $chain = [ordered]@{}
-        $depth = 0
-        $parent = $root
-        $element = $null
-		
-        ForEach ($line in $InputObject)
-        {
-            $quotedElements = (Select-String -Pattern '(?<=")([^\"\t\s]+\s?)+(?=")' -InputObject $line -AllMatches).Matches
-    
-            if ($quotedElements.Count -eq 1) # Create a new (sub) object
-            {
-                $element = New-Object -TypeName PSObject
-                Add-Member -InputObject $parent -MemberType NoteProperty -Name $quotedElements[0].Value -Value $element
-            }
-            elseif ($quotedElements.Count -eq 2) # Create a new String hash
-            {
-                Add-Member -InputObject $element -MemberType NoteProperty -Name $quotedElements[0].Value -Value $quotedElements[1].Value
-            }
-            elseif ($line -match "{")
-            {
-                $chain.Add($depth, $element)
-                $depth++
-                $parent = $chain.($depth - 1) # AKA $element
-            }
-            elseif ($line -match "}")
-            {
-                $depth--
-                $parent = $chain.($depth - 1)
-				$element = $parent
-                $chain.Remove($depth)
-            }
-            else # Comments etc
-            {
-            }
-        }
-
-        return $root
-    }
-    
-} # end function ConvertFrom-VDF
-
 #endregion
 
 #region begin body
 
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
-Show-Message -Type BANNER -NoPrefix -Message "        HITMAN 2 - PACKAGE DEFINITION PATCHER              "
+Show-Message -Type BANNER -NoPrefix -Message "        HITMAN 3 - PACKAGE DEFINITION PATCHER              "
 Show-Message -Type BANNER -NoPrefix -Message "                                                           "
-Show-Message -Type BANNER -NoPrefix -Message "                 v1.4.0 (2019/11/03)                       "
+Show-Message -Type BANNER -NoPrefix -Message "                 v1.5.0 (2021/05/20)                       "
 Show-Message -Type BANNER -NoPrefix -Message "`n-------------------------------------------------------`n"
 
 if($Restore)
@@ -227,85 +124,49 @@ if($Restore)
     Show-Message -Type WARNING -NoPrefix -Message "STARTING PACKAGE DEFINITION RESTORATION PROCEDURE`n"
 }
 
-# STEP 1 : PACKAGEDEFINITION SEARCHING
+# STEP 1 : GAME LOCATION AND PACKAGEDEFINITION SEARCHING
 # ------------------------------------------------------------------------------------------------------------------
 
-# Search steam installation folder
-$steamPath = (Get-ItemProperty -Path $STEAM_KEY_PATH -Name InstallPath -ErrorAction SilentlyContinue).InstallPath
+$gameLocationPath = $null
 
-if(([string]::IsNullOrEmpty($steamPath)) -or (-not(Test-path $steamPath))) 
+if(Get-Command legendary -ErrorAction SilentlyContinue)
 {
-    Show-Message -Type ERROR -Message "Steam folder not found"
-    Show-Message -Type DEBUG -Message "Invalid installation path found in the registry"
-    Show-Message -Type DEBUG -Message "Key : $STEAM_KEY_PATH"
-    Show-Message -Type DEBUG -Message "InstallPath value : $steamPath`n"
-}
-# If steam folder exists, search for Hitman 2 app manifest in all possible locations
-else 
-{
-    Show-Message -Type INFO -Message "Steam folder found"
-    Show-Message -Type INFO -Message "Seaching appmanifest in $steamPath\steamapps"
+    Show-Message -Type INFO -Message "Legendary executable found"
+    Show-Message -Type INFO -Message "Seaching HITMAN 3 install location"
+    $apps = legendary list-installed --json | ConvertFrom-Json
 
-    $acfFile = "$steamPath\steamapps\appmanifest_$STEAM_APP_ID.acf"
-    $gameLocationPath = $null
-
-    # Search for Hitman 2's app manifest in the default steam folder
-    if(Test-Path $acfFile)
+    foreach($app in $apps)
     {
-        $acf = ConvertFrom-VDF (Get-Content $acfFile -Encoding UTF8)
-        $installDir = $acf.AppState.installdir
-        $gameLocationPath = "$steamPath\steamapps\common\$installDir"
-    }
-    # Search for Hitman 2's app manifest in each steam library folders
-    else
-    {
-        # libraryfolders.vdf contains all steam library folders
-        $vdfFile = "$steamPath\steamapps\libraryfolders.vdf"
-        $vdf = $null
-
-        if(-not(Test-path $vdfFile))
+        if($app.app_name -eq $EGS_APP_NAME)
         {
-            Show-Message -Type ERROR -Message "Steam's libraryfolders.vdf not found"
-            Show-Message -Type DEBUG -Message "libraryfolders.vdf file should be here :"
-            Show-Message -Type DEBUG -Message "$vdfFile"
-            Show-Message -Type DEBUG -Message "But the file was not found"
-            Show-Message -Type DEBUG -Message "Unable to find the game location automatically...`n"
-        }
-        else
-        {
-            $vdf = ConvertFrom-VDF (Get-Content $vdfFile -Encoding UTF8)
-        }
-
-        if(-not([string]::IsNullOrEmpty($vdf)))
-        {
-            # Search up to 20 library folders
-            for($i = 1; $i -le 20; $i++)
-            {
-                if(-not([string]::IsNullOrEmpty($vdf.LibraryFolders.$i)))
-                {
-                    $gamesDir = $($vdf.LibraryFolders.$i).Replace('\\','\')
-                    $acfFile = "$gamesDir\steamapps\appmanifest_$STEAM_APP_ID.acf"
-
-                    Show-Message -Type INFO -Message "Seaching appmanifest in $gamesDir\steamapps"
-
-                    if(Test-Path $acfFile)
-                    {
-                        $acf = ConvertFrom-VDF (Get-Content $acfFile -Encoding UTF8)
-                        $installDir = $acf.AppState.installdir
-                        $gameLocationPath = "$gamesDir\steamapps\common\$installDir"
-                        Break
-                    }
-                }
-            }
+            $gameLocationPath = $app.install_path
         }
     }
 }
 
 if(([string]::IsNullOrEmpty($gameLocationPath)) -or (-not(Test-path($gameLocationPath)))) 
 {
-    Write-Host ""
-    Show-Message -Type WARNING -Message "Hitman 2 folder not found"
-    $gameLocationPath = Read-Host "`n > Enter the full path (eg. C:\Program Files (x86)\Steam\steamapps\common\HITMAN2)"
+    if(-not(Test-path $EGS_FILE_MANIFEST))
+    {
+        Show-Message -Type WARNING -Message "Epic Games Store manifest not found"
+    }
+    else 
+    {
+        Show-Message -Type INFO -Message "Epic Games Store manifest found"
+        Show-Message -Type INFO -Message "Seaching HITMAN 3 install location"
+
+        $gameLocationPath = Get-Content -Raw -Path $EGS_FILE_MANIFEST | 
+            ConvertFrom-Json | 
+            Select-Object -ExpandProperty InstallationList | 
+            Where-Object AppName -eq $EGS_APP_NAME | 
+            Select-Object -ExpandProperty InstallLocation
+    }
+}
+
+if(([string]::IsNullOrEmpty($gameLocationPath)) -or (-not(Test-path($gameLocationPath)))) 
+{
+    Show-Message -Type WARNING -Message "HITMAN 3 folder not found"
+    $gameLocationPath = Read-Host "`n > Enter the full path (eg. C:\Program Files\Epic Games\HITMAN3)"
     Write-Host ""
 
     if([string]::IsNullOrEmpty($gameLocationPath))
@@ -316,23 +177,23 @@ if(([string]::IsNullOrEmpty($gameLocationPath)) -or (-not(Test-path($gameLocatio
 
     if(-not(Test-path($gameLocationPath))) 
     {
-        Show-Message -Type ERROR -Message "Unable to determine a path to Hitman 2's folder`n"
+        Show-Message -Type ERROR -Message "Unable to determine a path to HITMAN 3's folder`n"
         Exit 1
     }
 }
 else
 {
-    Show-Message -Type INFO -Message "Hitman 2 folder found"
+    Show-Message -Type INFO -Message "HITMAN 3 folder found"
 }
 
 $packageDefinitionBasePath = "$gameLocationPath\Runtime"
-$mainExePath = "$gameLocationPath\Retail\$HITMAN2_NAME"
+$mainExePath = "$gameLocationPath\Retail\$HITMAN3_NAME"
 $packageDefinitionFile = "$packageDefinitionBasePath\$PACKAGEDEFINITION_NAME"
 
 if(-not(Test-path($mainExePath))) 
 {
-    Show-Message -Type ERROR -Message "$HITMAN2_NAME not found"
-    Show-Message -Type DEBUG -Message "$HITMAN2_NAME retail file should be here :"
+    Show-Message -Type ERROR -Message "$HITMAN3_NAME not found"
+    Show-Message -Type DEBUG -Message "$HITMAN3_NAME retail file should be here :"
     Show-Message -Type DEBUG -Message "$mainExePath"
     Show-Message -Type DEBUG -Message "But the file was not found...`n"
     Exit 1
@@ -431,7 +292,7 @@ if(-not($iniFileContent | Select-string -Pattern $PATCHLEVEL_SETTING -Quiet))
     Exit 1
 }
 
-# We replace both the base game and DLCs patchlevels
+# Replace both the base game and DLCs patchlevels
 # @chunk patchlevel=xx / @dlc patchlevel=xx
 $iniFileContent -Replace "$PATCHLEVEL_SETTING\.*=.*", "$PATCHLEVEL_SETTING=$PATCHLEVEL_NUMBER" `
  | Set-Content $packageDefinitioniniFile -Force
